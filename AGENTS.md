@@ -262,6 +262,11 @@ Do not steer the project in those directions unless explicitly instructed.
 
 Write code that is easy to inspect and edit.
 
+Naming conventions must follow these fixed rules:
+- Class names, struct names, and type alias names: `PascalCase`
+- Variable names: `snake_case`
+- Function names and method names: `snake_case`
+
 Prefer:
 - small pure functions
 - explicit variable names
