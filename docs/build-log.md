@@ -41,3 +41,36 @@
 ### 未解決事項
 - 参照元（uni-uta-DB / kasane-3khz-songsDB）の実ファイル差分レビューは別途必要。
 
+
+## 2026-04-08 (JSONP/R2 契約具体化)
+
+### 変更内容
+- スプレッドシート実体（2シート・A3:D）に合わせた具体契約を `docs/sheets-jsonp-r2-spec.md` として追加。
+- `docs/repro-spec.md` を、Spreadsheet → GAS → JSONP生成 → R2アップロードの再現仕様に更新。
+- `gas/Code.gs` を `mode=exportContractV1` の最小エクスポート用に整理（2シート固定・D列ハイパーリンクURL抽出）。
+- `scripts/export-jsonp.mjs` を追加（正規化、検証、songs単体JSONP + archive manifest/chunk JSONP 生成）。
+- `.github/workflows/publish-jsonp-r2.yml` を追加（GAS取得→JSONP生成→R2再帰アップロード）。
+- `README.md` に JSONP + R2 公開フロー（v1）を追記。
+
+### 変更理由
+- 汎用仕様のままだと、対象シート構造・重複定義・JSONPファイル配置・R2アップロード契約が曖昧で再現性が不足するため。
+- archive 大容量化に備え、manifest + chunk 方式を先に契約化するため。
+
+### 影響ファイル
+- `README.md`
+- `docs/repro-spec.md`
+- `docs/sheets-jsonp-r2-spec.md`
+- `docs/build-log.md`
+- `gas/Code.gs`
+- `scripts/export-jsonp.mjs`
+- `.github/workflows/publish-jsonp-r2.yml`
+
+### 注意点
+- 実Spreadsheet接続（GASデプロイURL）は未検証。
+- R2アップロードは Secrets 未設定のため、このリポジトリ内では未検証。
+- `validation-warnings.json` は warning 出力であり、自動修正は行わない。
+
+### 未解決事項
+- `GAS_WEB_APP_URL` の本番値。
+- `CF_R2_*` の本番値。
+- archive の最適 chunk size（初期値1000）。

@@ -1,0 +1,51 @@
+name: publish-jsonp-r2
+
+on:
+  workflow_dispatch:
+
+jobs:
+  export-and-upload:
+    runs-on: ubuntu-latest
+    env:
+      GAS_WEB_APP_URL: ${{ secrets.GAS_WEB_APP_URL }}
+      CF_R2_ACCESS_KEY_ID: ${{ secrets.CF_R2_ACCESS_KEY_ID }}
+      CF_R2_SECRET_ACCESS_KEY: ${{ secrets.CF_R2_SECRET_ACCESS_KEY }}
+      CF_R2_BUCKET: ${{ secrets.CF_R2_BUCKET }}
+      CF_R2_ENDPOINT: ${{ secrets.CF_R2_ENDPOINT }}
+      CF_R2_PUBLIC_BASE_URL: ${{ secrets.CF_R2_PUBLIC_BASE_URL }}
+      AWS_ACCESS_KEY_ID: ${{ secrets.CF_R2_ACCESS_KEY_ID }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.CF_R2_SECRET_ACCESS_KEY }}
+      AWS_DEFAULT_REGION: auto
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Fetch spreadsheet export JSON
+        run: |
+          mkdir -p tmp
+          test -n "$GAS_WEB_APP_URL"
+          curl -fsSL "$GAS_WEB_APP_URL?mode=exportContractV1" -o tmp/spreadsheet-export.json
+
+      - name: Generate JSONP files
+        run: |
+          node scripts/export-jsonp.mjs --input tmp/spreadsheet-export.json --out public-data --chunk-size 1000
+
+      - name: Upload JSONP to Cloudflare R2
+        run: |
+          test -n "$CF_R2_BUCKET"
+          test -n "$CF_R2_ENDPOINT"
+          aws s3 cp public-data "s3://$CF_R2_BUCKET/public-data" \
+            --recursive \
+            --exclude "*" \
+            --include "*.js" \
+            --endpoint-url "$CF_R2_ENDPOINT"
+
+      - name: Output published base URL
+        run: |
+          echo "CF_R2_PUBLIC_BASE_URL=${CF_R2_PUBLIC_BASE_URL}"
