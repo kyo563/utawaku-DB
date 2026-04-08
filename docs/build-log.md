@@ -1,5 +1,24 @@
 # build-log
 
+## 2026-04-08 (GitHub Actions定期実行追加 + 名称明確化)
+
+### 変更内容
+- `.github/workflows/publish-jsonp-r2.yml` の workflow 名を `サーバーアップロード` に変更。
+- 同 workflow に `schedule` トリガー（`0 0 * * *`）を追加し、24時間に1回の定期実行を有効化。
+
+### 変更理由
+- Action名を用途が伝わる名称にし、スプレッドシート→JSONP→R2アップロードを毎日自動実行する要件を満たすため。
+
+### 影響ファイル
+- `.github/workflows/publish-jsonp-r2.yml`
+- `docs/build-log.md`
+
+### 注意点
+- cron は UTC 基準。`0 0 * * *` は毎日 00:00 UTC 実行。
+
+### 未解決事項
+- `GAS_WEB_APP_URL` / `CF_R2_*` Secrets の本番値設定と実行確認。
+
 ## 2026-04-08 (フロント最小リファクタリング: 可読性向上と重複削減)
 
 ### 変更内容
