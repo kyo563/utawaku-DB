@@ -39,18 +39,25 @@ function normalizeRecord(input, i, sourceType) {
 
 async function loadFromStatic() {
   const songsUrl = readMeta("utawaku:data-songs", "./public-data/songs.json");
-  const data = await fetchJson(songsUrl);
-  if (!Array.isArray(data)) throw new Error("songs.json must be array");
-  return data.map((r, i) => normalizeRecord(r, i, "static-json"));
+  const archiveUrl = readMeta("utawaku:data-archive", "./public-data/archive.json");
+  const [songs, archive] = await Promise.all([fetchJson(songsUrl), fetchJson(archiveUrl)]);
+  if (!Array.isArray(songs)) throw new Error("songs.json must be array");
+  if (!Array.isArray(archive)) throw new Error("archive.json must be array");
+  const merged = songs.concat(archive);
+  return merged.map((r, i) => normalizeRecord(r, i, "static-json"));
 }
 
 async function loadFromGas() {
   const endpoint = readMeta("utawaku:gas-endpoint");
   if (!endpoint) throw new Error("gas endpoint not configured");
-  const url = `${endpoint}${endpoint.includes("?") ? "&" : "?"}sheet=songs&limit=${APP_CONFIG.fallbackLimit}`;
-  const data = await fetchJson(url);
-  const rows = Array.isArray(data?.items) ? data.items : Array.isArray(data) ? data : [];
-  return rows.map((r, i) => normalizeRecord(r, i, "gas-api"));
+  const joiner = endpoint.includes("?") ? "&" : "?";
+  const songsUrl = `${endpoint}${joiner}sheet=songs&limit=${APP_CONFIG.fallbackLimit}`;
+  const archiveUrl = `${endpoint}${joiner}sheet=archive&limit=${APP_CONFIG.fallbackLimit}`;
+  const [songsData, archiveData] = await Promise.all([fetchJson(songsUrl), fetchJson(archiveUrl)]);
+  const songs = Array.isArray(songsData?.items) ? songsData.items : Array.isArray(songsData) ? songsData : [];
+  const archive = Array.isArray(archiveData?.items) ? archiveData.items : Array.isArray(archiveData) ? archiveData : [];
+  const merged = songs.concat(archive);
+  return merged.map((r, i) => normalizeRecord(r, i, "gas-api"));
 }
 
 export async function loadSongsWithFallback() {

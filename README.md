@@ -33,7 +33,7 @@ Google Spreadsheet
 - `src/render.js`: ステータス/結果の描画
 - `src/state.js`: 画面状態
 - `src/utils.js`: 正規化、date8抽出、重複除去、派生値生成
-- `public-data/`: `songs.json` / `gags.json` / `archive.json` / `meta.json`
+- `public-data/`: `songs.json` / `archive.json` / `meta.json`
 - `gas/Code.gs`: Spreadsheetを読む軽量API（検索・ページング・JSONP対応）
 - `scripts/validate-json.mjs`: JSON構文チェック
 - `docs/repro-spec.md`: 再現仕様書
@@ -51,7 +51,6 @@ Google Spreadsheet
 
 想定シート名:
 - `songs`
-- `gags`
 - `archive`
 
 想定開始行:
@@ -123,7 +122,7 @@ python3 -m http.server 8000
 
 ### kasane-3khz-songsDB から借用
 - GASでシート非公開のまま参照
-- `songs/gags/archive` の分割思想
+- `songs/archive` の分割思想
 - `q/artist/title/exact/limit/offset` パラメータ
 - 正規化、重複除去、date/url抽出、キャッシュ
 
