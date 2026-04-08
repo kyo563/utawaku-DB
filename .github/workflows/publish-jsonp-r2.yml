@@ -15,7 +15,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
       GAS_WEB_APP_URL: ${{ secrets.GAS_WEB_APP_URL }}
-      CF_R2_ACCOUNT_ID: ${{ secrets.CF_R2_ACCOUNT_ID }}
+      CF_R2_ENDPOINT: ${{ secrets.CF_R2_ENDPOINT }}
       CF_R2_ACCESS_KEY_ID: ${{ secrets.CF_R2_ACCESS_KEY_ID }}
       CF_R2_SECRET_ACCESS_KEY: ${{ secrets.CF_R2_SECRET_ACCESS_KEY }}
       CF_R2_BUCKET: ${{ secrets.CF_R2_BUCKET }}
@@ -42,10 +42,9 @@ jobs:
           AWS_SECRET_ACCESS_KEY: ${{ secrets.CF_R2_SECRET_ACCESS_KEY }}
           AWS_DEFAULT_REGION: auto
         run: |
-          test -n "$CF_R2_ACCOUNT_ID"
+          test -n "$CF_R2_ENDPOINT"
           test -n "$CF_R2_BUCKET"
-          ENDPOINT="https://${CF_R2_ACCOUNT_ID}.r2.cloudflarestorage.com"
-          aws s3 cp public-data/songs.js s3://${CF_R2_BUCKET}/public-data/songs.js --endpoint-url "$ENDPOINT"
-          aws s3 cp public-data/archive-manifest.js s3://${CF_R2_BUCKET}/public-data/archive-manifest.js --endpoint-url "$ENDPOINT"
-          aws s3 cp public-data/validation-warnings.json s3://${CF_R2_BUCKET}/public-data/validation-warnings.json --endpoint-url "$ENDPOINT"
-          aws s3 sync public-data/archive-chunks s3://${CF_R2_BUCKET}/public-data/archive-chunks --endpoint-url "$ENDPOINT" --exclude "*" --include "*.js"
+          aws s3 cp public-data/songs.js s3://${CF_R2_BUCKET}/public-data/songs.js --endpoint-url "$CF_R2_ENDPOINT"
+          aws s3 cp public-data/archive-manifest.js s3://${CF_R2_BUCKET}/public-data/archive-manifest.js --endpoint-url "$CF_R2_ENDPOINT"
+          aws s3 cp public-data/validation-warnings.json s3://${CF_R2_BUCKET}/public-data/validation-warnings.json --endpoint-url "$CF_R2_ENDPOINT"
+          aws s3 sync public-data/archive-chunks s3://${CF_R2_BUCKET}/public-data/archive-chunks --endpoint-url "$CF_R2_ENDPOINT" --exclude "*" --include "*.js"
