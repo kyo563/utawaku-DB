@@ -1,0 +1,20 @@
+[
+  {
+    "artist": "サンプルアーティストA",
+    "title": "サンプル曲A",
+    "kind": "歌枠",
+    "dText": "2026-04-01 12:34:56",
+    "dUrl": "https://www.youtube.com/watch?v=aaaaaaaaaaa&t=120",
+    "date8": "20260401",
+    "rowId": "songs|2|A"
+  },
+  {
+    "artist": "サンプルアーティストB",
+    "title": "サンプル曲B",
+    "kind": "歌ってみた",
+    "dText": "2026/03/15",
+    "dUrl": "https://youtu.be/bbbbbbbbbbb",
+    "date8": "20260315",
+    "rowId": "songs|3|B"
+  }
+]
