@@ -6,8 +6,10 @@ export function createState() {
     raw: [],
     filtered: [],
     query: "",
-    kind: "",
-    sort: "date_desc",
+    kinds: new Set(["歌枠", "歌ってみた", "ショート"]),
+    sortBy: "date",
+    order: "desc",
+    topMenuOpen: true,
     danmakuPreset: ""
   };
 }
