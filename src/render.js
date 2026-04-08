@@ -27,8 +27,90 @@ export function fillFilters(rows) {
   sort.innerHTML = [
     `<option value="date_desc">${APP_CONFIG.labels.sortDateDesc}</option>`,
     `<option value="date_asc">${APP_CONFIG.labels.sortDateAsc}</option>`,
-    `<option value="title_asc">${APP_CONFIG.labels.sortTitleAsc}</option>`
+    `<option value="title_asc">${APP_CONFIG.labels.sortTitleAsc}</option>`,
+    `<option value="artist_asc">${APP_CONFIG.labels.sortArtistAsc}</option>`
   ].join("");
+}
+
+export function fillDanmakuPresets() {
+  const select = document.getElementById("danmakuType");
+  select.innerHTML = APP_CONFIG.danmakuPresets
+    .map((preset) => `<option value="${escapeHtml(preset.id)}">${escapeHtml(preset.label)}</option>`)
+    .join("");
+}
+
+export function getDanmakuTextByPreset(presetId) {
+  const found = APP_CONFIG.danmakuPresets.find((preset) => preset.id === presetId);
+  return found ? found.text : "";
+}
+
+export function renderTopStatus({ loading, error, filteredCount, totalCount, sourceType }) {
+  const status = document.getElementById("status");
+  const count = document.getElementById("countInfo");
+
+  count.textContent = `${filteredCount}件 / 全${totalCount}件`;
+
+  if (loading) {
+    status.textContent = "読込中...";
+    status.dataset.state = "loading";
+    return;
+  }
+
+  if (error) {
+    status.textContent = error;
+    status.dataset.state = "error";
+    return;
+  }
+
+  status.textContent = sourceType ? `読込元: ${sourceType}` : "待機中";
+  status.dataset.state = "ready";
+}
+
+export function renderList({ rows, loading, error }) {
+  const list = document.getElementById("resultList");
+
+  if (loading) {
+    list.innerHTML = `<li class="state-card" data-state="loading">データを読込中です...</li>`;
+    return;
+  }
+
+  if (error) {
+    list.innerHTML = `<li class="state-card" data-state="error">${escapeHtml(error)}</li>`;
+    return;
+  }
+
+  if (!rows.length) {
+    list.innerHTML = `<li class="state-card" data-state="empty">該当データがありません。</li>`;
+    return;
+  }
+
+  list.innerHTML = rows.map((r) => renderSongCard(r)).join("");
+}
+
+function renderSongCard(r) {
+  const title = escapeHtml(r.title || "(無題)");
+  const artist = escapeHtml(r.artist || "(不明)");
+  const kind = escapeHtml(r.kind || "-");
+  const date = escapeHtml(r.displayDate || "日付不明");
+  const url = escapeHtml(r.dUrl || "");
+  const link = url
+    ? `<a class="card-link" href="${url}" target="_blank" rel="noopener noreferrer">詳細へ</a>`
+    : `<span class="card-link is-disabled">リンクなし</span>`;
+
+  return `
+    <li class="song-card">
+      <p class="song-card__title">${title}</p>
+      <p class="song-card__artist">${artist}</p>
+      <p class="song-card__meta">${kind} / ${date}</p>
+      <div class="song-card__actions">${link}</div>
+    </li>
+  `;
+}
+
+export function renderToast(message, isError = false) {
+  const toast = document.getElementById("copyStatus");
+  toast.textContent = message;
+  toast.dataset.state = isError ? "error" : "ok";
 }
 
 function escapeHtml(text) {
@@ -38,44 +120,4 @@ function escapeHtml(text) {
     .replaceAll(">", "&gt;")
     .replaceAll('"', "&quot;")
     .replaceAll("'", "&#39;");
-}
-
-export function renderStatus(text, isError = false) {
-  const el = document.getElementById("status");
-  el.textContent = text;
-  el.classList.toggle("error", isError);
-}
-
-export function renderList(rows, onCopy) {
-  const list = document.getElementById("resultList");
-  if (!rows.length) {
-    list.innerHTML = "<li class=\"meta\">該当データがありません。</li>";
-    return;
-  }
-
-  list.innerHTML = rows
-    .map((r) => {
-      const title = escapeHtml(r.title || "(無題)");
-      const artist = escapeHtml(r.artist || "(不明)");
-      const kind = escapeHtml(r.kind || "-");
-      const date = escapeHtml(r.displayDate || "日付不明");
-      const url = escapeHtml(r.dUrl || "");
-      const copyText = escapeHtml(`${r.artist} - ${r.title}`);
-      const link = url ? `<a class=\"primary\" href=\"${url}\" target=\"_blank\" rel=\"noopener noreferrer\">配信へ移動</a>` : "";
-      return `
-        <li class="card">
-          <p class="song">${title}</p>
-          <p class="meta">${artist} / ${kind} / ${date}</p>
-          <div class="actions">
-            ${link}
-            <button data-copy="${copyText}" type="button">コピー</button>
-          </div>
-        </li>
-      `;
-    })
-    .join("");
-
-  list.querySelectorAll("button[data-copy]").forEach((btn) => {
-    btn.addEventListener("click", () => onCopy(btn.getAttribute("data-copy") || ""));
-  });
 }
