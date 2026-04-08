@@ -1,136 +1,26 @@
 # AGENTS.md
 
-## Purpose
+## Role
 
-This repository hosts a generic sing-stream database application.
+You are working in a repository for a generic sing-stream database application.
 
-The core idea is simple:
+Your job is to make the smallest reasonable changes needed to implement the requested task while preserving the intended architecture, documentation quality, and reproducibility of the project.
 
-- Spreadsheet is the primary source of truth
-- Data is exported to JSON
-- JSON is published on R2
-- A static HTML app reads the JSON and renders a searchable index
+## Core Product Definition
 
-This project must remain lightweight, understandable, and reproducible by third parties.
+This repository is for a static index database that makes spreadsheet-managed sing-stream data searchable and easier to browse.
 
-## Product Definition
+The intended core flow is:
 
-This app is not a full backend system.
+1. Google Spreadsheet as the source of truth
+2. Export or sync script to generate normalized JSON
+3. JSON published to Cloudflare R2
+4. Static HTML / CSS / JavaScript fetches and renders the JSON
+5. End users search and browse from the browser
 
-It is a static index database that helps users search song archive data from spreadsheet-managed records more intuitively.
+This is not a full backend application.
 
-Primary responsibilities:
-
-- read normalized song/archive metadata
-- expose it as static JSON
-- render searchable/filterable views in HTML
-- keep deployment and maintenance simple
-
-## Source of Truth
-
-Unless explicitly overridden in repository documents, the source of truth is:
-
-1. spreadsheet column definition
-2. exported JSON schema
-3. published static assets
-4. main branch
-
-If implementation and documentation conflict, prefer the explicit schema and repository docs over assumptions.
-
-## Architecture Principles
-
-Keep the architecture minimal.
-
-Preferred flow:
-
-1. Google Spreadsheet
-2. export / sync script
-3. R2 static JSON
-4. static HTML / CSS / JavaScript
-5. end user browser
-
-Default stance:
-
-- prefer static data over dynamic fetching
-- prefer simple scripts over frameworks
-- prefer explicit schemas over implicit inference
-- prefer readable code over clever abstractions
-- prefer small files and clear responsibilities
-
-## Hard Constraints
-
-You must follow these rules.
-
-### 1. Do not over-engineer
-Do not add unnecessary frameworks, build tools, servers, or databases.
-
-Avoid introducing:
-
-- React
-- Next.js
-- Vue
-- Svelte
-- heavy state libraries
-- server-side rendering
-- ORMs
-- unnecessary APIs
-
-Use plain HTML / CSS / JavaScript unless a repository document explicitly requires otherwise.
-
-### 2. Preserve the core flow
-Do not change the basic structure without a strong documented reason.
-
-The intended structure is:
-
-- spreadsheet-managed data
-- exported JSON
-- R2 distribution
-- static frontend rendering
-
-### 3. Keep files and naming predictable
-Use straightforward names.
-
-Examples:
-
-- `public-data/songs.json`
-- `public-data/archives.json`
-- `scripts/sync-gas.mjs`
-- `docs/build-log.md`
-- `docs/repro-spec.md`
-
-Avoid vague names like:
-
-- `data2-final-v3.json`
-- `newAppCore.js`
-- `tmp-handler.js`
-
-### 4. Respect existing repository conventions
-Before changing anything, inspect the current repository structure and follow the existing style.
-
-Do not rewrite large areas just to make the code look more modern.
-
-### 5. Log meaningful changes
-When implementing non-trivial changes, update `docs/build-log.md`.
-
-Log at least:
-
-- what changed
-- why it changed
-- affected files
-- important cautions
-
-### 6. Do not invent requirements
-If a requirement is not stated in the repository docs, do not fabricate it.
-
-Do not assume:
-
-- authentication is needed
-- admin UI is needed
-- user accounts are needed
-- database migrations are needed
-- real-time sync is needed
-
-## What to Optimize For
+## Primary Goals
 
 Optimize for the following, in this order:
 
@@ -141,53 +31,179 @@ Optimize for the following, in this order:
 5. small operational burden
 6. acceptable performance
 
-Do not optimize for theoretical scalability unless the repository explicitly asks for it.
+Do not optimize for theoretical scalability unless explicitly instructed.
 
-## Spreadsheet and Data Handling Rules
+## Source of Truth
 
-Treat spreadsheet data carefully.
+Unless explicitly documented otherwise, the source of truth is:
 
-### Required attitude
-- column names matter
-- column order may matter if documented
-- empty values must be handled explicitly
-- Japanese text normalization matters
-- search behavior must be deterministic
+1. spreadsheet column definitions
+2. exported JSON schema
+3. published static assets
+4. repository documents
+5. latest `main` branch
 
-### Always consider:
-- full-width / half-width normalization
-- whitespace normalization
-- optional fields
-- null / empty string handling
+If code and docs conflict, prefer explicit repository documents and explicit schema definitions over assumptions.
+
+## Required Reading Before Changes
+
+Before making non-trivial changes, review these files if they exist:
+
+- `AGENTS.md`
+- `README.md`
+- `docs/repro-spec.md`
+- `docs/build-log.md`
+
+Do not ignore repository instructions in favor of your own preferred architecture.
+
+## Architecture Rules
+
+Preserve the intended structure:
+
+- spreadsheet-managed data
+- normalized JSON output
+- R2 distribution
+- static frontend rendering
+
+Prefer:
+
+- static data over dynamic server logic
+- plain HTML / CSS / JavaScript over frameworks
+- simple scripts over complex build pipelines
+- explicit schemas over implicit inference
+- small files with clear responsibilities
+- deterministic search behavior
+
+Do not change the basic structure without a clear documented reason.
+
+## Hard Constraints
+
+### 1. Do not over-engineer
+
+Do not introduce unnecessary frameworks, services, or abstractions.
+
+Avoid introducing unless explicitly required:
+
+- React
+- Next.js
+- Vue
+- Svelte
+- SSR
+- complex state libraries
+- ORMs
+- server frameworks
+- unnecessary APIs
+- unnecessary databases
+
+Use plain HTML / CSS / JavaScript unless repository documents explicitly require something else.
+
+### 2. Keep the system static-first
+
+Prefer static JSON files fetched by the frontend.
+
+Do not turn this project into a backend-heavy application unless explicitly instructed.
+
+### 3. Make the smallest reasonable change
+
+Prefer:
+
+- narrow diffs
+- direct edits
+- incremental improvements
+- compatibility with existing structure
+
+Avoid:
+
+- sweeping rewrites
+- mixing refactor and feature work without need
+- casually renaming files or directories
+- introducing speculative features
+
+### 4. Keep names predictable
+
+Use straightforward names such as:
+
+- `public-data/songs.json`
+- `public-data/archives.json`
+- `public-data/meta.json`
+- `scripts/sync-gas.mjs`
+- `docs/repro-spec.md`
+- `docs/build-log.md`
+
+Avoid vague names such as:
+
+- `finalData2.json`
+- `newCore.js`
+- `handler-temp.js`
+- `app-v2-final.js`
+
+### 5. Respect existing conventions
+
+Inspect the repository before changing structure or style.
+
+Do not rewrite large areas of code just to modernize them.
+
+### 6. Do not invent requirements
+
+If the repository does not explicitly require something, do not fabricate it.
+
+Do not assume the project needs:
+
+- authentication
+- admin UI
+- user accounts
+- realtime sync
+- analytics dashboards
+- multi-tenant support
+- CMS behavior
+- full-text search backend
+
+## Data Handling Rules
+
+Treat spreadsheet-derived data carefully.
+
+Always consider:
+
+- documented column names
+- documented column order
+- empty values
+- null vs empty string
 - duplicate rows
 - stable IDs when available
-- schema compatibility with existing JSON consumers
+- backward compatibility of JSON keys
+- deterministic sort order
+- Japanese text normalization
+- full-width / half-width normalization
+- whitespace normalization
+- punctuation normalization
 
-Do not silently rename JSON keys without updating documentation.
+Do not silently rename JSON keys.
+
+If you change a data contract, update documentation and log the reason.
 
 ## Frontend Rules
 
-The frontend should remain lightweight.
+Frontend implementation should remain lightweight.
 
-### Preferred implementation
+Preferred approach:
+
 - static `index.html`
 - minimal CSS
 - plain JavaScript
 - fetch static JSON
-- render list / filters / detail views as needed
+- render searchable lists and detail links
 
-### Avoid
-- large client-side frameworks
-- unnecessary component systems
+Avoid:
+
+- large client frameworks
 - hidden global state complexity
-- fancy animations that hurt readability
-- tightly coupled rendering logic with unclear data flow
+- unnecessary animations
+- unclear rendering flow
+- complicated component systems
 
 ## Documentation Rules
 
-This repository is intended to be reproducible by third parties using tools such as Codex or Gemini.
-
-Therefore documentation is a first-class deliverable.
+Documentation is a first-class deliverable.
 
 Maintain these files when relevant:
 
@@ -197,118 +213,151 @@ Maintain these files when relevant:
 
 ### `README.md`
 Should explain:
-- what this repository is
-- how to run it
-- how data flows
-- where key files are
+
+- what the repository is
+- how the project is structured
+- how the data flows
+- how to start working safely
 
 ### `docs/repro-spec.md`
 Should explain:
+
 - system overview
-- required services
-- data model
+- required external services
+- spreadsheet expectations
 - JSON schema
-- deployment flow
-- operational cautions
+- R2 placement
+- frontend behavior
+- search rules
+- deployment and update flow
 - non-goals
 
 ### `docs/build-log.md`
 Should record:
-- implementation decisions
-- changes during development
-- pitfalls
-- unresolved issues
 
-## Change Policy
+- what changed
+- why it changed
+- affected files
+- important cautions
+- unresolved issues when relevant
 
-Make the smallest reasonable change that satisfies the task.
+## Build Log Policy
 
-Prefer:
-- narrow diffs
-- explicit edits
-- compatibility with current structure
+For non-trivial changes, update `docs/build-log.md`.
 
-Avoid:
-- sweeping rewrites
-- mixing refactor and feature work in one step
-- changing file layout without need
-- changing naming conventions casually
+At minimum record:
 
-## When Adding New Features
+- date
+- change summary
+- reason
+- affected files
+- caution points
+- unresolved items if any
 
-Before implementing, confirm:
+Do not skip the build log for meaningful architectural, schema, deployment, or search behavior changes.
 
-1. Does this fit the spreadsheet -> JSON -> R2 -> HTML model?
-2. Can this be done without introducing a new framework?
-3. Is the data contract explicit?
-4. Does the change need a documentation update?
-5. Does the change preserve reproducibility?
+## Secrets and Configuration
 
-If the answer to these questions is weak, simplify the plan.
+Never hardcode secrets, tokens, credentials, private bucket settings, or private URLs in source files.
+
+Use environment variables for sensitive values.
+
+If examples are needed:
+
+- use placeholder values
+- use `.env.example` when appropriate
+- keep real credentials out of the repository
+
+Do not commit:
+
+- API keys
+- service account credentials
+- R2 access keys
+- secret tokens
+- private spreadsheet credentials
+
+## Verification Rules
+
+Verify what can actually be verified.
+
+Do not claim something works unless that claim is supported by one of the following:
+
+- repository evidence
+- code inspection
+- local execution
+- explicit configuration already present in the repository
+
+If you cannot verify something, say so clearly in the relevant output or documentation.
+
+## Change Checklist
+
+Before finalizing a non-trivial change, confirm:
+
+1. Does this preserve the spreadsheet -> JSON -> R2 -> HTML model?
+2. Is the data contract explicit?
+3. Did I avoid unnecessary frameworks and abstractions?
+4. Did I update docs if behavior or schema changed?
+5. Did I update `docs/build-log.md` if the change is meaningful?
+6. Did I avoid hardcoding secrets?
+7. Did I avoid claiming unverifiable success?
+
+If any answer is weak, simplify the change or document the limitation.
 
 ## Non-Goals
 
-This repository is not intended to become:
+Do not steer the project toward becoming:
 
 - a generic CMS
 - a social platform
-- a complex multi-tenant SaaS
-- a full-text search engine backend
-- a highly dynamic authenticated application
-
-Do not steer the project in those directions unless explicitly instructed.
+- a complex SaaS
+- a backend-heavy search engine
+- a dynamic authenticated application
+- a dashboard product with unrelated features
 
 ## Coding Style
 
 Write code that is easy to inspect and edit.
 
-Naming conventions must follow these fixed rules:
-- Class names, struct names, and type alias names: `PascalCase`
-- Variable names: `snake_case`
-- Function names and method names: `snake_case`
-
 Prefer:
-- small pure functions
+
+- small functions
 - explicit variable names
 - direct control flow
 - defensive handling of input data
 - comments only where they clarify intent
 
 Avoid:
-- deeply nested logic
+
+- deep nesting
 - excessive abstraction
 - magic constants without explanation
 - clever one-liners that reduce readability
 
-## Output Style for AI Agents
+## Output Style
 
-When making changes:
+When responding to implementation tasks:
 
 - be concrete
 - be minimal
-- do not over-explain in code
+- be honest
 - do not add speculative features
-- do not claim something works unless the code supports it
+- do not over-explain in code comments
+- do not claim completion beyond what the repository evidence supports
 
-If you make an assumption, state it clearly in the relevant document or task output.
-
-## Branch and Merge Assumptions
-
-This repository is effectively operated with `main` as the canonical branch unless explicitly documented otherwise.
+## Branch Assumptions
 
 Assume:
 
-- latest `main` is the only source of truth
-- changes should stay compatible with current `main`
-- do not create parallel architecture directions
+- `main` is the canonical branch unless explicitly documented otherwise
+- the latest `main` is the only source of truth
+- changes should remain compatible with current `main`
+- parallel architecture directions should not be created casually
 
 ## Less Is More
 
-This rule is important.
+When multiple implementation options exist, choose the simplest one that:
 
-When several implementation options exist, choose the simplest one that:
-
-- preserves current architecture
+- preserves the current architecture
 - remains understandable to a non-expert
 - can be reproduced by a third party
 - does not add unnecessary moving parts
