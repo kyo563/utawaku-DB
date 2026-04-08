@@ -1,10 +1,10 @@
 /**
- * Spreadsheet -> JSONP export (contract v1.1)
+ * Spreadsheet -> JSON export (contract v1.2)
  *
- * このファイルをそのまま GAS に貼り付けてデプロイする想定。
- *
- * Endpoint:
- *   GET /exec?mode=exportContractV1&callback=yourCallback
+ * Endpoint examples:
+ *   GET /exec?mode=exportContractV1
+ *   GET /exec?mode=songs
+ *   GET /exec?mode=archive
  *
  * Response:
  *   - callback 未指定: JSON
@@ -12,6 +12,8 @@
  */
 
 var EXPORT_MODE = 'exportContractV1';
+var MODE_SONGS = 'songs';
+var MODE_ARCHIVE = 'archive';
 var TARGET_SHEETS = [
   { label: '歌った曲リスト', key: 'songs' },
   { label: 'アーカイブシート', key: 'archive' }
@@ -27,7 +29,7 @@ function doGet(e) {
   var p = (e && e.parameter) ? e.parameter : {};
   var mode = String(p.mode || EXPORT_MODE);
 
-  if (mode !== EXPORT_MODE) {
+  if (mode !== EXPORT_MODE && mode !== MODE_SONGS && mode !== MODE_ARCHIVE) {
     return jsonResponse_({
       ok: false,
       mode: mode,
@@ -36,23 +38,23 @@ function doGet(e) {
   }
 
   try {
-    var payload = buildExportContractV1_();
+    var payload = buildExportPayload_(mode);
     return jsonResponse_({
       ok: true,
-      mode: EXPORT_MODE,
+      mode: mode,
       data: payload
     }, p.callback);
   } catch (err) {
     Logger.log('doGet error: ' + err);
     return jsonResponse_({
       ok: false,
-      mode: EXPORT_MODE,
+      mode: mode,
       error: toErrorMessage_(err)
     }, p.callback);
   }
 }
 
-function buildExportContractV1_() {
+function buildExportPayload_(mode) {
   var ss = SpreadsheetApp.getActiveSpreadsheet();
   if (!ss) {
     throw new Error('active spreadsheet not found');
@@ -60,7 +62,7 @@ function buildExportContractV1_() {
 
   var result = {
     ok: true,
-    version: 'v1.1',
+    version: 'v1.2',
     spreadsheetId: ss.getId(),
     generatedAt: new Date().toISOString(),
     sheets: {},
@@ -71,8 +73,12 @@ function buildExportContractV1_() {
 
   for (var i = 0; i < TARGET_SHEETS.length; i++) {
     var t = TARGET_SHEETS[i];
+    if (mode === MODE_SONGS && t.key !== MODE_SONGS) continue;
+    if (mode === MODE_ARCHIVE && t.key !== MODE_ARCHIVE) continue;
+
     var sheetResult = readSheet_(ss, t.label, t.key, urlSeen, result.warnings);
     result.sheets[t.label] = sheetResult;
+    result.sheets[t.key] = sheetResult;
   }
 
   return result;

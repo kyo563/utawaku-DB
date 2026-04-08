@@ -8,17 +8,67 @@ const CALLBACK = '__UTAWAKU_DB_JSONP__';
 const VERSION = 1;
 
 function parseArgs(argv) {
-  const args = { input: 'tmp/spreadsheet-export.json', out: 'public-data', chunkSize: 1000 };
+  const args = {
+    input: '',
+    inputSongs: '',
+    inputArchive: '',
+    out: 'public-data',
+    chunkSize: 1000
+  };
+
   for (let i = 2; i < argv.length; i += 1) {
     const a = argv[i];
     if (a === '--input') args.input = argv[++i];
+    else if (a === '--input-songs') args.inputSongs = argv[++i];
+    else if (a === '--input-archive') args.inputArchive = argv[++i];
     else if (a === '--out') args.out = argv[++i];
     else if (a === '--chunk-size') args.chunkSize = Number(argv[++i]);
   }
+
+  if (!args.input && !args.inputSongs && !args.inputArchive) {
+    args.input = 'tmp/spreadsheet-export.json';
+  }
+
   if (!Number.isInteger(args.chunkSize) || args.chunkSize < 1) {
     throw new Error('chunk-size must be integer >= 1');
   }
   return args;
+}
+
+function readKeys(obj) {
+  if (!obj || typeof obj !== 'object' || Array.isArray(obj)) return [];
+  return Object.keys(obj);
+}
+
+function toDiagnostic(label, src) {
+  const topKeys = readKeys(src);
+  const dataKeys = readKeys(src?.data);
+  const sheetsKeys = readKeys(src?.sheets || src?.data?.sheets);
+  return `${label} topLevelKeys=[${topKeys.join(',') || '-'}] dataKeys=[${dataKeys.join(',') || '-'}] sheetsKeys=[${sheetsKeys.join(',') || '-'}]`;
+}
+
+function normalizeExportPayload(src, label) {
+  if (!src || typeof src !== 'object') {
+    throw new Error(`invalid payload: ${label} (not object)`);
+  }
+  if (src.ok === false) {
+    throw new Error(`payload error: ${label} mode=${String(src.mode || '')} error=${String(src.error || 'unknown')}`);
+  }
+
+  const payload = src.sheets ? src : (src.data?.sheets ? src.data : null);
+  if (!payload?.sheets) {
+    const diag = toDiagnostic(label, src);
+    throw new Error(`target sheets not found: ${diag}`);
+  }
+  return payload;
+}
+
+function pickSheet(payload, candidates) {
+  for (const key of candidates) {
+    const sheet = payload?.sheets?.[key];
+    if (sheet) return sheet;
+  }
+  return null;
 }
 
 function parseDate8FromTitle(sourceTitle) {
@@ -117,62 +167,108 @@ function toJsonp(payload) {
   return `${CALLBACK}(${JSON.stringify(payload)});\n`;
 }
 
+async function writeJson(file, payload) {
+  await mkdir(dirname(file), { recursive: true });
+  await writeFile(file, `${JSON.stringify(payload, null, 2)}\n`, 'utf8');
+}
+
 async function writeJsonp(file, payload) {
   await mkdir(dirname(file), { recursive: true });
   await writeFile(file, toJsonp(payload), 'utf8');
 }
 
+async function loadNormalized(file, label) {
+  const text = await readFile(file, 'utf8');
+  const src = JSON.parse(text);
+  return normalizeExportPayload(src, label);
+}
+
+function resolveSheets(combinedPayload, songsPayload, archivePayload) {
+  const songsSheet = (songsPayload && pickSheet(songsPayload, ['歌った曲リスト', 'songs']))
+    || (combinedPayload && pickSheet(combinedPayload, ['歌った曲リスト', 'songs']));
+  const archiveSheet = (archivePayload && pickSheet(archivePayload, ['アーカイブシート', 'archive']))
+    || (combinedPayload && pickSheet(combinedPayload, ['アーカイブシート', 'archive']));
+
+  if (!songsSheet || !archiveSheet) {
+    throw new Error('target sheets not found: required songs and archive sheets');
+  }
+  return { songsSheet, archiveSheet };
+}
+
 async function main() {
   const args = parseArgs(process.argv);
-  const rawText = await readFile(args.input, 'utf8');
-  const src = JSON.parse(rawText);
-  const generatedAt = src.generatedAt || new Date().toISOString();
 
-  const songsSheet = src.sheets?.['歌った曲リスト'];
-  const archiveSheet = src.sheets?.['アーカイブシート'];
-  if (!songsSheet || !archiveSheet) throw new Error('target sheets not found');
+  const combinedPayload = args.input ? await loadNormalized(args.input, 'combined') : null;
+  const songsPayload = args.inputSongs ? await loadNormalized(args.inputSongs, 'songs') : null;
+  const archivePayload = args.inputArchive ? await loadNormalized(args.inputArchive, 'archive') : null;
+
+  const { songsSheet, archiveSheet } = resolveSheets(combinedPayload, songsPayload, archivePayload);
+
+  const generatedAt = songsPayload?.generatedAt
+    || archivePayload?.generatedAt
+    || combinedPayload?.generatedAt
+    || new Date().toISOString();
+
   if (!validateHeader(songsSheet.header) || !validateHeader(archiveSheet.header)) {
     throw new Error('A3:D3 header mismatch');
   }
 
-  const songs = (songsSheet.rows || []).map((r) => normalizeRecord(r, 'songs', '歌った曲リスト'));
-  const archive = (archiveSheet.rows || []).map((r) => normalizeRecord(r, 'archive', 'アーカイブシート'));
+  const songs = (songsSheet.rows || []).map((r) => normalizeRecord(r, 'songs', songsSheet.sourceSheetLabel || '歌った曲リスト'));
+  const archive = (archiveSheet.rows || []).map((r) => normalizeRecord(r, 'archive', archiveSheet.sourceSheetLabel || 'アーカイブシート'));
 
   const warnings = [];
   validate(songs, archive, warnings);
 
-  await writeJsonp(join(args.out, 'songs.js'), {
+  const songsPayloadOut = {
     type: 'songs',
     version: VERSION,
     generatedAt,
     count: songs.length,
     records: songs
-  });
+  };
+
+  await writeJson(join(args.out, 'songs.json'), songsPayloadOut);
+  await writeJsonp(join(args.out, 'songs.js'), songsPayloadOut);
 
   const chunks = [];
   for (let i = 0; i < archive.length; i += args.chunkSize) {
     const index = Math.floor(i / args.chunkSize) + 1;
     const records = archive.slice(i, i + args.chunkSize);
-    const path = `public-data/archive-chunks/archive-${String(index).padStart(4, '0')}.js`;
-    chunks.push({ path, index, count: records.length });
+    const chunkName = `archive-${String(index).padStart(4, '0')}`;
+    const jsonPath = `public-data/archive/chunks/${chunkName}.json`;
+    const jsonpPath = `public-data/archive-chunks/${chunkName}.js`;
+    chunks.push({ path: jsonPath, jsonpPath, index, count: records.length });
 
-    await writeJsonp(join(args.out, `archive-chunks/archive-${String(index).padStart(4, '0')}.js`), {
+    const chunkPayload = {
       type: 'archive-chunk',
       version: VERSION,
       generatedAt,
       chunkIndex: index,
       count: records.length,
       records
-    });
+    };
+
+    await writeJson(join(args.out, `archive/chunks/${chunkName}.json`), chunkPayload);
+    await writeJsonp(join(args.out, `archive-chunks/${chunkName}.js`), chunkPayload);
   }
 
+  const archiveIndexPayload = {
+    type: 'archive-index',
+    version: VERSION,
+    generatedAt,
+    totalCount: archive.length,
+    chunkSize: args.chunkSize,
+    chunks
+  };
+
+  await writeJson(join(args.out, 'archive/index.json'), archiveIndexPayload);
   await writeJsonp(join(args.out, 'archive-manifest.js'), {
     type: 'archive-manifest',
     version: VERSION,
     generatedAt,
     totalCount: archive.length,
     chunkSize: args.chunkSize,
-    chunks
+    chunks: chunks.map((x) => ({ path: x.jsonpPath, index: x.index, count: x.count }))
   });
 
   if (warnings.length > 0) {

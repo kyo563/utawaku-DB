@@ -9,6 +9,7 @@ export const APP_CONFIG = {
     sortArtistAsc: "アーティスト順"
   },
   fallbackLimit: 200,
+  archiveInitialChunkCount: 3,
   danmakuPresets: [
     { id: "call", label: "定型コール", text: "👏👏👏 最高！" },
     { id: "music", label: "定型応援", text: "🎶🎶🎶 ナイス歌枠！" },
