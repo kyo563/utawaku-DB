@@ -1,18 +1,16 @@
 import { loadSongsWithFallback } from "./data-source.js";
-import {
-  fillDanmakuPresets,
-  fillFilters,
-  getDanmakuTextByPreset,
-  initStaticText,
-  renderList,
-  renderToast,
-  renderTopStatus
-} from "./render.js";
+import { fillDanmakuPresets, getDanmakuTextByPreset, initStaticText, renderList, renderToast, renderTopStatus } from "./render.js";
 import { createState } from "./state.js";
 import { normalizeText } from "./utils.js";
 
 const state = createState();
 let debounceTimer = null;
+
+const SORT_LABELS = {
+  date: "投稿日順",
+  artist: "歌手名順",
+  title: "楽曲名順"
+};
 
 function refreshView() {
   applyFilterAndSort();
@@ -24,22 +22,24 @@ function refreshView() {
     sourceType: state.sourceType
   });
   renderList({ rows: state.filtered, loading: state.loading, error: state.error });
+  syncSortButtons();
 }
 
 function applyFilterAndSort() {
   const q = normalizeText(state.query);
-  const kind = state.kind;
+  const activeKinds = state.kinds;
 
   let rows = state.raw.filter((r) => {
     const hit = !q || r.normalizedArtist.includes(q) || r.normalizedTitle.includes(q);
-    const kindOk = !kind || r.kind === kind;
+    const kindOk = activeKinds.has(r.kind);
     return hit && kindOk;
   });
 
-  if (state.sort === "date_asc") rows.sort((a, b) => (a.date8 || "").localeCompare(b.date8 || ""));
-  else if (state.sort === "title_asc") rows.sort((a, b) => (a.title || "").localeCompare(b.title || "", "ja"));
-  else if (state.sort === "artist_asc") rows.sort((a, b) => (a.artist || "").localeCompare(b.artist || "", "ja"));
-  else rows.sort((a, b) => (b.date8 || "").localeCompare(a.date8 || ""));
+  if (state.sortBy === "artist") rows.sort((a, b) => (a.artist || "").localeCompare(b.artist || "", "ja"));
+  else if (state.sortBy === "title") rows.sort((a, b) => (a.title || "").localeCompare(b.title || "", "ja"));
+  else rows.sort((a, b) => (a.date8 || "").localeCompare(b.date8 || ""));
+
+  if (state.order === "desc") rows.reverse();
 
   state.filtered = rows;
 }
@@ -55,31 +55,33 @@ async function reload() {
   state.error = error;
   state.loading = false;
 
-  fillFilters(rows);
   refreshView();
 }
 
-function resetFilters() {
-  state.query = "";
-  state.kind = "";
-  state.sort = "date_desc";
-  const qInput = document.getElementById("qInput");
-  const kindFilter = document.getElementById("kindFilter");
-  const sortSelect = document.getElementById("sortSelect");
-  qInput.value = "";
-  kindFilter.value = "";
-  sortSelect.value = "date_desc";
-  refreshView();
+function syncSortButtons() {
+  const sortButton = document.getElementById("sortToggle");
+  const orderButton = document.getElementById("orderToggle");
+  sortButton.textContent = SORT_LABELS[state.sortBy];
+  orderButton.textContent = state.order === "desc" ? "降順" : "昇順";
 }
 
-function handleCopyDanmaku() {
-  const text = getDanmakuTextByPreset(state.danmakuPreset);
-  if (!text) return;
+function nextSort(current) {
+  if (current === "date") return "artist";
+  if (current === "artist") return "title";
+  return "date";
+}
 
-  navigator.clipboard.writeText(text).then(
-    () => renderToast("弾幕をコピーしました。"),
-    () => renderToast("コピーに失敗しました。", true)
-  );
+function toggleTopMenu() {
+  state.topMenuOpen = !state.topMenuOpen;
+  const row2 = document.getElementById("topRow2");
+  const button = document.getElementById("toggleTopMenu");
+  const card = document.getElementById("topCard");
+
+  row2.hidden = !state.topMenuOpen;
+  button.textContent = state.topMenuOpen ? "▴" : "▾";
+  button.setAttribute("aria-expanded", String(state.topMenuOpen));
+  button.setAttribute("aria-label", state.topMenuOpen ? "上部メニューを折りたたむ" : "上部メニューを展開する");
+  card.classList.toggle("is-collapsed", !state.topMenuOpen);
 }
 
 function wireEvents() {
@@ -105,28 +107,43 @@ function wireEvents() {
     qInput.focus();
   });
 
-  document.getElementById("kindFilter").addEventListener("change", (e) => {
-    state.kind = e.target.value;
+  document.querySelectorAll('#kindFilters input[type="checkbox"]').forEach((checkbox) => {
+    checkbox.addEventListener("change", () => {
+      const checkedKinds = [...document.querySelectorAll('#kindFilters input[type="checkbox"]:checked')].map((el) => el.value);
+      state.kinds = new Set(checkedKinds.length ? checkedKinds : ["歌枠", "歌ってみた", "ショート"]);
+      refreshView();
+    });
+  });
+
+  document.getElementById("sortToggle").addEventListener("click", () => {
+    state.sortBy = nextSort(state.sortBy);
     refreshView();
   });
 
-  document.getElementById("sortSelect").addEventListener("change", (e) => {
-    state.sort = e.target.value;
+  document.getElementById("orderToggle").addEventListener("click", () => {
+    state.order = state.order === "desc" ? "asc" : "desc";
     refreshView();
   });
 
-  document.getElementById("resetFilters").addEventListener("click", resetFilters);
-  document.getElementById("reloadButton").addEventListener("click", reload);
+  document.getElementById("toggleTopMenu").addEventListener("click", toggleTopMenu);
 
   document.getElementById("danmakuType").addEventListener("change", (e) => {
     state.danmakuPreset = e.target.value;
   });
 
-  document.getElementById("copyDanmaku").addEventListener("click", handleCopyDanmaku);
+  document.getElementById("copyDanmaku").addEventListener("click", () => {
+    const text = getDanmakuTextByPreset(state.danmakuPreset);
+    if (!text) return;
+    navigator.clipboard.writeText(text).then(
+      () => renderToast("弾幕をコピーしました。"),
+      () => renderToast("コピーに失敗しました。", true)
+    );
+  });
 }
 
 initStaticText();
 fillDanmakuPresets();
+syncSortButtons();
 state.danmakuPreset = document.getElementById("danmakuType").value;
 wireEvents();
 reload();
