@@ -138,3 +138,35 @@
 
 ### 未解決事項
 - `GAS_WEB_APP_URL` と `CF_R2_*` の本番値は運用環境側で設定が必要。
+
+## 2026-04-08 (gags撤去 + songs/archive 読込整理 + workflow追加)
+
+### 変更内容
+- フロントから `gags` 参照を撤去し、`songs` + `archive` の2データ読込に整理。
+- `src/data-source.js` で static/GAS の双方を `songs` + `archive` 取得へ変更し、結合して正規化するよう更新。
+- `scripts/validate-json.mjs` から `public-data/gags.json` の検証を削除。
+- `public-data/gags.json` を削除。
+- `.github/workflows/publish-jsonp-r2.yml` を追加（GAS取得→JSONP生成→R2アップロード）。
+- `README.md` のデータ構成説明を `songs/archive` に更新。
+
+### 変更理由
+- 本アプリのスコープ外である `gags` を完全整理し、仕様を `songs/archive` 中心に揃えるため。
+- 仕様書記載の workflow 実体が欠けていたため、再現導線を補完するため。
+
+### 影響ファイル
+- `index.html`
+- `src/app.js`
+- `src/config.js`
+- `src/data-source.js`
+- `scripts/validate-json.mjs`
+- `public-data/gags.json`（削除）
+- `.github/workflows/publish-jsonp-r2.yml`（追加）
+- `README.md`
+- `docs/build-log.md`
+
+### 注意点
+- GAS fallback は `sheet=songs` と `sheet=archive` の2回呼び出しを行う。
+- workflow 実行には `GAS_WEB_APP_URL` と `CF_R2_*` secrets が必要。
+
+### 未解決事項
+- 実運用 secrets 未設定環境での workflow 実行確認は未実施。

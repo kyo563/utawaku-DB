@@ -11,4 +11,4 @@ export const APP_CONFIG = {
   copyTemplate: "{artist} - {title}"
 };
 
-export const KIND_ORDER = ["歌枠", "歌ってみた", "ショート", "企画 / 一発ネタ", "アーカイブ系"];
+export const KIND_ORDER = ["歌枠", "歌ってみた", "ショート", "アーカイブ系"];

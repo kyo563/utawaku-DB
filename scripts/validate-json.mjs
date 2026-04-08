@@ -4,7 +4,6 @@ import { readFile } from "node:fs/promises";
 const files = [
   "public-data/meta.json",
   "public-data/songs.json",
-  "public-data/gags.json",
   "public-data/archive.json"
 ];
 

@@ -5,6 +5,12 @@ import { normalizeText } from "./utils.js";
 
 const state = createState();
 
+function refreshView() {
+  applyFilterAndSort();
+  renderList(state.filtered, handleCopy);
+  renderStatus(`${state.filtered.length} 件表示 / source=${state.sourceType}`);
+}
+
 function applyFilterAndSort() {
   const q = normalizeText(state.query);
   const kind = state.kind;
@@ -30,14 +36,12 @@ async function reload() {
   state.error = error;
 
   fillFilters(rows);
-  applyFilterAndSort();
-  renderList(state.filtered, handleCopy);
+  refreshView();
 
   if (error) {
     renderStatus(error, true);
     return;
   }
-  renderStatus(`${state.filtered.length} 件表示 / source=${sourceType}`);
 }
 
 function handleCopy(text) {
@@ -51,23 +55,17 @@ function handleCopy(text) {
 function wireEvents() {
   document.getElementById("qInput").addEventListener("input", (e) => {
     state.query = e.target.value;
-    applyFilterAndSort();
-    renderList(state.filtered, handleCopy);
-    renderStatus(`${state.filtered.length} 件表示 / source=${state.sourceType}`);
+    refreshView();
   });
 
   document.getElementById("kindFilter").addEventListener("change", (e) => {
     state.kind = e.target.value;
-    applyFilterAndSort();
-    renderList(state.filtered, handleCopy);
-    renderStatus(`${state.filtered.length} 件表示 / source=${state.sourceType}`);
+    refreshView();
   });
 
   document.getElementById("sortSelect").addEventListener("change", (e) => {
     state.sort = e.target.value;
-    applyFilterAndSort();
-    renderList(state.filtered, handleCopy);
-    renderStatus(`${state.filtered.length} 件表示 / source=${state.sourceType}`);
+    refreshView();
   });
 
   document.getElementById("reloadButton").addEventListener("click", reload);
