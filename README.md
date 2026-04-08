@@ -127,3 +127,23 @@ python3 -m http.server 8000
 - `q/artist/title/exact/limit/offset` パラメータ
 - 正規化、重複除去、date/url抽出、キャッシュ
 
+
+## JSONP + R2 公開フロー（v1）
+
+詳細仕様は `docs/sheets-jsonp-r2-spec.md` を参照。
+
+最小実行例:
+
+```bash
+node scripts/export-jsonp.mjs --input tmp/spreadsheet-export.json --out public-data --chunk-size 1000
+```
+
+生成物:
+- `public-data/songs.js`
+- `public-data/archive-manifest.js`
+- `public-data/archive-chunks/archive-0001.js` ...
+- `public-data/validation-warnings.json`
+
+GitHub Actions:
+- `.github/workflows/publish-jsonp-r2.yml`
+- GAS から取得した2シートデータを JSONP に変換し、`public-data/**/*.js` を R2 にアップロード
