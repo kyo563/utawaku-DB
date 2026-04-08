@@ -1,36 +1,43 @@
 # build-log
 
-## 2026-04-07
+## 2026-04-08
 
 ### 変更内容
-- `AGENTS.md` を追加し、リポジトリ運用方針と実装制約を明文化。
-- `docs/repro-spec.md` を追加し、再現仕様（スプレッドシート→JSON→R2→HTML）を文書化。
-- `AGENTS.md` の Coding Style に命名規則を追記し、命名方針を確定。
+- Utawaku-DB の最小実装を追加（静的フロント + JSON優先 + GASフォールバック）。
+- `index.html` と `src/*.js` を追加し、検索・kindフィルタ・並び替え・コピー導線を実装。
+- `public-data/*.json` の初期サンプルを追加。
+- `gas/Code.gs` を追加し、sheet指定・検索・厳密一致・ページング・JSONP・キャッシュに対応。
+- `scripts/validate-json.mjs` を追加。
+- `README.md` と `docs/repro-spec.md` を再構成し、責務・再現手順・データ契約を明文化。
 
 ### 変更理由
-- 第三者やAIエージェントが、同じ方針で再現・保守できるようにするため。
+- ドキュメントのみの状態から、再現可能な最小アプリ構成を確立するため。
+- static-first と low-cost 運用を維持しつつ、GASフォールバックを併用できる形にするため。
 
 ### 影響ファイル
-- `AGENTS.md`
+- `README.md`
+- `index.html`
+- `src/app.js`
+- `src/config.js`
+- `src/data-source.js`
+- `src/render.js`
+- `src/state.js`
+- `src/utils.js`
+- `public-data/meta.json`
+- `public-data/songs.json`
+- `public-data/gags.json`
+- `public-data/archive.json`
+- `gas/Code.gs`
+- `scripts/validate-json.mjs`
+- `assets/icons/README.md`
 - `docs/repro-spec.md`
 - `docs/build-log.md`
 
 ### 注意点
-- 仕様書は草案を含むため、実データの確定後に列定義・JSONキー・R2公開情報を追記すること。
+- `index.html` の GAS endpoint は空。運用時に実URLを設定すること。
+- `public-data/*.json` はサンプル値。実運用前に実データへ置換すること。
+- GAS はアクティブスプレッドシート前提。単体実行時はシート紐付け確認が必要。
 
-## 2026-04-07 (docs replacement for Codex-safe finalization)
+### 未解決事項
+- 参照元（uni-uta-DB / kasane-3khz-songsDB）の実ファイル差分レビューは別途必要。
 
-### 変更内容
-- `AGENTS.md` を、Codex の安定運用向けに整理した最終版の指示文へ置き換え。
-- `docs/repro-spec.md` を、会話ノイズを含まない整理済み最終仕様へ置き換え。
-
-### 変更理由
-- 再現性を高め、AI エージェントの誤読を減らすため。
-
-### 影響ファイル
-- `AGENTS.md`
-- `docs/repro-spec.md`
-- `docs/build-log.md`
-
-### 注意点
-- スプレッドシート ID、R2 バケット名、公開 URL、デプロイコマンドなどの実値は、明示定義されるまで `[TBD]` のまま扱うこと。

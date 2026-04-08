@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Utawaku-DB</title>
+    <meta name="description" content="歌枠の履歴を検索し、配信導線へすぐ移動できる静的DB" />
+    <meta name="utawaku:data-songs" content="./public-data/songs.json" />
+    <meta name="utawaku:data-gags" content="./public-data/gags.json" />
+    <meta name="utawaku:data-archive" content="./public-data/archive.json" />
+    <meta name="utawaku:data-meta" content="./public-data/meta.json" />
+    <meta name="utawaku:gas-endpoint" content="" />
+    <style>
+      :root {
+        --bg: #0f1115;
+        --panel: #171a21;
+        --text: #eef2f6;
+        --sub: #aeb9c8;
+        --accent: #7ad9ff;
+        --danger: #ff8888;
+        --line: #2a3040;
+      }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        background: var(--bg);
+        color: var(--text);
+      }
+      .app {
+        max-width: 920px;
+        margin: 0 auto;
+        padding: 16px;
+      }
+      .title { margin: 0; font-size: 1.4rem; }
+      .desc { margin: 6px 0 16px; color: var(--sub); font-size: .92rem; }
+      .panel {
+        background: var(--panel);
+        border: 1px solid var(--line);
+        border-radius: 12px;
+        padding: 12px;
+        margin-bottom: 12px;
+      }
+      .grid { display: grid; gap: 8px; grid-template-columns: 1fr 1fr; }
+      @media (max-width: 720px) { .grid { grid-template-columns: 1fr; } }
+      input, select, button {
+        width: 100%;
+        border: 1px solid var(--line);
+        background: #0f131b;
+        color: var(--text);
+        border-radius: 8px;
+        padding: 10px;
+      }
+      button { cursor: pointer; }
+      .status { font-size: .9rem; color: var(--sub); margin: 6px 0; }
+      .status.error { color: var(--danger); }
+      ul { list-style: none; padding: 0; margin: 0; }
+      .card {
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        padding: 10px;
+        margin-bottom: 8px;
+        background: #111621;
+      }
+      .song { margin: 0; font-size: 1rem; }
+      .meta { margin: 6px 0 0; color: var(--sub); font-size: .85rem; }
+      .actions { display: flex; gap: 8px; margin-top: 8px; }
+      .actions a, .actions button {
+        flex: 1;
+        text-align: center;
+        text-decoration: none;
+        color: var(--text);
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        padding: 8px;
+        background: #0f131b;
+      }
+      .actions .primary { border-color: var(--accent); }
+    </style>
+  </head>
+  <body>
+    <main class="app">
+      <h1 id="appTitle" class="title">Utawaku-DB</h1>
+      <p id="appDescription" class="desc">歌枠履歴を今すぐ使える形で検索します。</p>
+
+      <section class="panel grid" aria-label="検索条件">
+        <input id="qInput" type="search" placeholder="曲名 / アーティスト名で検索" />
+        <select id="kindFilter"></select>
+        <select id="sortSelect"></select>
+        <button id="reloadButton" type="button">再読込</button>
+      </section>
+
+      <p id="status" class="status" aria-live="polite">読込待機中...</p>
+      <section class="panel">
+        <ul id="resultList" aria-label="検索結果"></ul>
+      </section>
+    </main>
+
+    <script type="module" src="./src/app.js"></script>
+  </body>
+</html>
