@@ -7,6 +7,7 @@ export function createState() {
     filtered: [],
     query: "",
     kind: "",
-    sort: "date_desc"
+    sort: "date_desc",
+    danmakuPreset: ""
   };
 }
