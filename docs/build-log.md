@@ -118,3 +118,23 @@
 
 ### 未解決事項
 - 本番 `GAS_WEB_APP_URL` と `CF_R2_*` の設定。
+
+## 2026-04-08 (R2立ち上げガイド追加)
+
+### 変更内容
+- `docs/r2-setup-guide.md` を追加し、Cloudflare R2 の作成手順と GitHub Secrets へ入力する値を整理。
+- `README.md` に R2 ガイドへの参照リンクを追加。
+
+### 変更理由
+- スプレッドシート/GASデプロイ内容を前提に、R2設定時の入力値を迷わないようにするため。
+
+### 影響ファイル
+- `docs/r2-setup-guide.md`
+- `README.md`
+- `docs/build-log.md`
+
+### 注意点
+- 本変更はガイド追加のみ。Cloudflare / GAS 本番環境への実投入は未実施。
+
+### 未解決事項
+- `GAS_WEB_APP_URL` と `CF_R2_*` の本番値は運用環境側で設定が必要。

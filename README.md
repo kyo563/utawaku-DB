@@ -131,6 +131,7 @@ python3 -m http.server 8000
 ## JSONP + R2 公開フロー（v1）
 
 詳細仕様は `docs/sheets-jsonp-r2-spec.md` を参照。
+R2立ち上げとSecrets入力値は `docs/r2-setup-guide.md` を参照。
 
 最小実行例:
 
