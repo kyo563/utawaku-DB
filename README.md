@@ -129,7 +129,11 @@ python3 -m http.server 8000
 
 ## JSONP + R2 公開フロー（v1）
 
-詳細仕様は `docs/sheets-jsonp-r2-spec.md` を参照。
+ここは **最終形**（JSONP + R2）です。  
+現時点（2026-04-08）は R2 未立ち上げのため、**仮組として GAS から直接読込**で運用します。  
+R2 準備完了後に、以下フローへ移行します。
+
+詳細仕様は `docs/sheets-jsonp-r2-spec.md` を参照。  
 R2立ち上げとSecrets入力値は `docs/r2-setup-guide.md` を参照。
 
 最小実行例:
@@ -147,3 +151,16 @@ node scripts/export-jsonp.mjs --input tmp/spreadsheet-export.json --out public-d
 GitHub Actions:
 - `.github/workflows/publish-jsonp-r2.yml`
 - GAS から取得した2シートデータを JSONP に変換し、`public-data/**/*.js` を R2 にアップロード
+
+### 現在の運用段階（暫定）
+
+1. GAS Webアプリをデプロイ
+2. `index.html` の GAS endpoint を設定
+3. フロントは GAS 直接読込で表示
+
+### 次の段階（R2立ち上げ後）
+
+1. GASから取得したデータを JSONP に変換
+2. JSONP を R2 に配置
+3. フロントは R2 上の JSONP を優先読込
+4. 必要時のみ GAS をフォールバックとして利用
