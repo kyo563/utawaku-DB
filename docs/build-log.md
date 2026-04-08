@@ -362,3 +362,32 @@
 
 ### 未解決事項
 - 本番GASデプロイURLに対する実運用環境での疎通確認。
+
+## 2026-04-08 (Cloudflare R2 CORS 最小設定)
+
+### 変更内容
+- Cloudflare R2 の対象バケットに CORS 設定を追加。
+- 公開HTML配信元からの JSON 読み込みのみを許可する最小構成とした。
+- 許可した method は `GET`, `HEAD` のみ。
+- 書き込み系 method（`PUT`, `POST`, `DELETE`）は許可していない。
+- 認証付き通信は前提とせず、公開 JSON の `fetch()` 用設定とした。
+
+### 実施場所
+- Cloudflare Dashboard
+- R2
+- 対象バケット
+- Settings
+- CORS policy（名称はUI差異の可能性あり）
+
+### 設定値
+```json
+[
+  {
+    "AllowedOrigins": ["https://example.com"],
+    "AllowedMethods": ["GET", "HEAD"],
+    "AllowedHeaders": [],
+    "ExposeHeaders": [],
+    "MaxAgeSeconds": 3600
+  }
+]
+```
