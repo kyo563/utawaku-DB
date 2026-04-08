@@ -33,13 +33,33 @@ jobs:
         run: |
           test -n "$GAS_WEB_APP_URL"
           mkdir -p tmp
-          curl -fsSL "${GAS_WEB_APP_URL}?mode=songs" -o tmp/export-songs.json
+          songs_status=$(curl -sS -L -w "%{http_code}" -o tmp/export-songs.json "${GAS_WEB_APP_URL}?mode=songs")
+          echo "$songs_status" > tmp/export-songs.status
+          echo "[songs] http status: $songs_status"
+          node -e '
+          const fs = require("node:fs");
+          const body = fs.readFileSync("tmp/export-songs.json", "utf8");
+          const preview = body.slice(0, 600).replace(/\s+/g, " ");
+          console.log(`[songs] response preview: ${preview}`);
+          '
+          test "$songs_status" -ge 200
+          test "$songs_status" -lt 300
 
       - name: Fetch archive export JSON
         run: |
           test -n "$GAS_WEB_APP_URL"
           mkdir -p tmp
-          curl -fsSL "${GAS_WEB_APP_URL}?mode=archive" -o tmp/export-archive.json
+          archive_status=$(curl -sS -L -w "%{http_code}" -o tmp/export-archive.json "${GAS_WEB_APP_URL}?mode=archive")
+          echo "$archive_status" > tmp/export-archive.status
+          echo "[archive] http status: $archive_status"
+          node -e '
+          const fs = require("node:fs");
+          const body = fs.readFileSync("tmp/export-archive.json", "utf8");
+          const preview = body.slice(0, 600).replace(/\s+/g, " ");
+          console.log(`[archive] response preview: ${preview}`);
+          '
+          test "$archive_status" -ge 200
+          test "$archive_status" -lt 300
 
       - name: Validate export payload structure
         run: |
@@ -51,11 +71,15 @@ jobs:
             const top = keys(src);
             const data = keys(src.data);
             const sheets = keys((src && src.sheets) || (src.data && src.data.sheets));
+            const mode = String((src && src.mode) || "");
+            const error = String((src && src.error) || "");
             console.log(`[${label}] top-level keys: ${top.join(",") || "-"}`);
             console.log(`[${label}] data keys: ${data.join(",") || "-"}`);
             console.log(`[${label}] sheets keys: ${sheets.join(",") || "-"}`);
+            console.log(`[${label}] mode: ${mode || "-"}`);
+            console.log(`[${label}] error: ${error || "-"}`);
             if (!((src && src.sheets) || (src.data && src.data.sheets))) {
-              throw new Error(`[${label}] invalid payload: sheets not found`);
+              throw new Error(`[${label}] invalid payload: sheets not found, mode=${mode || "-"}, error=${error || "-"}`);
             }
           }
           inspect("songs", "tmp/export-songs.json");
