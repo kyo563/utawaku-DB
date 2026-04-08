@@ -3,14 +3,32 @@ import { fillDanmakuPresets, getDanmakuTextByPreset, initStaticText, renderList,
 import { createState } from "./state.js";
 import { normalizeText } from "./utils.js";
 
-const state = createState();
-let debounceTimer = null;
-
+const DEFAULT_KINDS = ["歌枠", "歌ってみた", "ショート"];
 const SORT_LABELS = {
   date: "投稿日順",
   artist: "歌手名順",
   title: "楽曲名順"
 };
+
+const state = createState();
+let debounceTimer = null;
+
+function getElements() {
+  return {
+    qInput: document.getElementById("qInput"),
+    clearSearch: document.getElementById("clearSearch"),
+    kindCheckboxes: document.querySelectorAll('#kindFilters input[type="checkbox"]'),
+    sortToggle: document.getElementById("sortToggle"),
+    orderToggle: document.getElementById("orderToggle"),
+    toggleTopMenu: document.getElementById("toggleTopMenu"),
+    topRow2: document.getElementById("topRow2"),
+    topCard: document.getElementById("topCard"),
+    danmakuType: document.getElementById("danmakuType"),
+    copyDanmaku: document.getElementById("copyDanmaku")
+  };
+}
+
+const elements = getElements();
 
 function refreshView() {
   applyFilterAndSort();
@@ -29,19 +47,26 @@ function applyFilterAndSort() {
   const q = normalizeText(state.query);
   const activeKinds = state.kinds;
 
-  let rows = state.raw.filter((r) => {
-    const hit = !q || r.normalizedArtist.includes(q) || r.normalizedTitle.includes(q);
-    const kindOk = activeKinds.has(r.kind);
-    return hit && kindOk;
-  });
+  const filtered = state.raw.filter((row) => isVisibleRow(row, q, activeKinds));
+  sortRows(filtered, state.sortBy, state.order);
+  state.filtered = filtered;
+}
 
-  if (state.sortBy === "artist") rows.sort((a, b) => (a.artist || "").localeCompare(b.artist || "", "ja"));
-  else if (state.sortBy === "title") rows.sort((a, b) => (a.title || "").localeCompare(b.title || "", "ja"));
-  else rows.sort((a, b) => (a.date8 || "").localeCompare(b.date8 || ""));
+function isVisibleRow(row, query, activeKinds) {
+  const hit = !query || row.normalizedArtist.includes(query) || row.normalizedTitle.includes(query);
+  return hit && activeKinds.has(row.kind);
+}
 
-  if (state.order === "desc") rows.reverse();
+function sortRows(rows, sortBy, order) {
+  if (sortBy === "artist") {
+    rows.sort((a, b) => (a.artist || "").localeCompare(b.artist || "", "ja"));
+  } else if (sortBy === "title") {
+    rows.sort((a, b) => (a.title || "").localeCompare(b.title || "", "ja"));
+  } else {
+    rows.sort((a, b) => (a.date8 || "").localeCompare(b.date8 || ""));
+  }
 
-  state.filtered = rows;
+  if (order === "desc") rows.reverse();
 }
 
 async function reload() {
@@ -59,10 +84,8 @@ async function reload() {
 }
 
 function syncSortButtons() {
-  const sortButton = document.getElementById("sortToggle");
-  const orderButton = document.getElementById("orderToggle");
-  sortButton.textContent = SORT_LABELS[state.sortBy];
-  orderButton.textContent = state.order === "desc" ? "降順" : "昇順";
+  elements.sortToggle.textContent = SORT_LABELS[state.sortBy];
+  elements.orderToggle.textContent = state.order === "desc" ? "降順" : "昇順";
 }
 
 function nextSort(current) {
@@ -73,77 +96,85 @@ function nextSort(current) {
 
 function toggleTopMenu() {
   state.topMenuOpen = !state.topMenuOpen;
-  const row2 = document.getElementById("topRow2");
-  const button = document.getElementById("toggleTopMenu");
-  const card = document.getElementById("topCard");
+  elements.topRow2.hidden = !state.topMenuOpen;
+  elements.toggleTopMenu.textContent = state.topMenuOpen ? "▴" : "▾";
+  elements.toggleTopMenu.setAttribute("aria-expanded", String(state.topMenuOpen));
+  elements.toggleTopMenu.setAttribute("aria-label", state.topMenuOpen ? "上部メニューを折りたたむ" : "上部メニューを展開する");
+  elements.topCard.classList.toggle("is-collapsed", !state.topMenuOpen);
+}
 
-  row2.hidden = !state.topMenuOpen;
-  button.textContent = state.topMenuOpen ? "▴" : "▾";
-  button.setAttribute("aria-expanded", String(state.topMenuOpen));
-  button.setAttribute("aria-label", state.topMenuOpen ? "上部メニューを折りたたむ" : "上部メニューを展開する");
-  card.classList.toggle("is-collapsed", !state.topMenuOpen);
+function handleQueryInput(value) {
+  state.query = value;
+  clearTimeout(debounceTimer);
+  debounceTimer = setTimeout(refreshView, 120);
+}
+
+function readCheckedKinds() {
+  const checkedKinds = [...elements.kindCheckboxes].filter((el) => el.checked).map((el) => el.value);
+  return new Set(checkedKinds.length ? checkedKinds : DEFAULT_KINDS);
+}
+
+function copyDanmakuText() {
+  const text = getDanmakuTextByPreset(state.danmakuPreset);
+  if (!text) {
+    renderToast("弾幕が未選択です。", true);
+    return;
+  }
+
+  navigator.clipboard.writeText(text).then(
+    () => renderToast("弾幕をコピーしました。"),
+    () => renderToast("コピーに失敗しました。", true)
+  );
 }
 
 function wireEvents() {
-  document.getElementById("qInput").addEventListener("input", (e) => {
-    state.query = e.target.value;
-    clearTimeout(debounceTimer);
-    debounceTimer = setTimeout(refreshView, 120);
+  elements.qInput.addEventListener("input", (e) => {
+    handleQueryInput(e.target.value);
   });
 
-  document.getElementById("qInput").addEventListener("keydown", (e) => {
-    if (e.key === "Escape") {
-      e.target.value = "";
-      state.query = "";
-      refreshView();
-    }
-  });
-
-  document.getElementById("clearSearch").addEventListener("click", () => {
-    const qInput = document.getElementById("qInput");
-    qInput.value = "";
+  elements.qInput.addEventListener("keydown", (e) => {
+    if (e.key !== "Escape") return;
+    elements.qInput.value = "";
     state.query = "";
     refreshView();
-    qInput.focus();
   });
 
-  document.querySelectorAll('#kindFilters input[type="checkbox"]').forEach((checkbox) => {
+  elements.clearSearch.addEventListener("click", () => {
+    elements.qInput.value = "";
+    state.query = "";
+    refreshView();
+    elements.qInput.focus();
+  });
+
+  elements.kindCheckboxes.forEach((checkbox) => {
     checkbox.addEventListener("change", () => {
-      const checkedKinds = [...document.querySelectorAll('#kindFilters input[type="checkbox"]:checked')].map((el) => el.value);
-      state.kinds = new Set(checkedKinds.length ? checkedKinds : ["歌枠", "歌ってみた", "ショート"]);
+      state.kinds = readCheckedKinds();
       refreshView();
     });
   });
 
-  document.getElementById("sortToggle").addEventListener("click", () => {
+  elements.sortToggle.addEventListener("click", () => {
     state.sortBy = nextSort(state.sortBy);
     refreshView();
   });
 
-  document.getElementById("orderToggle").addEventListener("click", () => {
+  elements.orderToggle.addEventListener("click", () => {
     state.order = state.order === "desc" ? "asc" : "desc";
     refreshView();
   });
 
-  document.getElementById("toggleTopMenu").addEventListener("click", toggleTopMenu);
+  elements.toggleTopMenu.addEventListener("click", toggleTopMenu);
 
-  document.getElementById("danmakuType").addEventListener("change", (e) => {
+  elements.danmakuType.addEventListener("change", (e) => {
     state.danmakuPreset = e.target.value;
   });
 
-  document.getElementById("copyDanmaku").addEventListener("click", () => {
-    const text = getDanmakuTextByPreset(state.danmakuPreset);
-    if (!text) return;
-    navigator.clipboard.writeText(text).then(
-      () => renderToast("弾幕をコピーしました。"),
-      () => renderToast("コピーに失敗しました。", true)
-    );
-  });
+  elements.copyDanmaku.addEventListener("click", copyDanmakuText);
 }
 
 initStaticText();
 fillDanmakuPresets();
 syncSortButtons();
-state.danmakuPreset = document.getElementById("danmakuType").value;
+state.danmakuPreset = elements.danmakuType.value;
 wireEvents();
 reload();

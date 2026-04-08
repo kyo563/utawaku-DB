@@ -2,7 +2,7 @@ import { APP_CONFIG } from "./config.js";
 import { dedupeByKey, extractDate8, extractVideoId, normalizeText, stableRowId, toDisplayDate, toTimestampSeconds } from "./utils.js";
 
 function readMeta(name, fallback = "") {
-  const el = document.querySelector(`meta[name=\"${name}\"]`);
+  const el = document.querySelector(`meta[name="${name}"]`);
   return (el?.content || fallback).trim();
 }
 
@@ -37,42 +37,57 @@ function normalizeRecord(input, i, sourceType) {
   };
 }
 
+function unwrapItems(data) {
+  if (Array.isArray(data?.items)) return data.items;
+  if (Array.isArray(data)) return data;
+  return [];
+}
+
+function normalizeRows(songsData, archiveData, sourceType) {
+  const merged = unwrapItems(songsData).concat(unwrapItems(archiveData));
+  return merged.map((row, i) => normalizeRecord(row, i, sourceType));
+}
+
 async function loadFromStatic() {
   const songsUrl = readMeta("utawaku:data-songs", "./public-data/songs.json");
   const archiveUrl = readMeta("utawaku:data-archive", "./public-data/archive.json");
   const [songs, archive] = await Promise.all([fetchJson(songsUrl), fetchJson(archiveUrl)]);
+
   if (!Array.isArray(songs)) throw new Error("songs.json must be array");
   if (!Array.isArray(archive)) throw new Error("archive.json must be array");
-  const merged = songs.concat(archive);
-  return merged.map((r, i) => normalizeRecord(r, i, "static-json"));
+
+  return normalizeRows(songs, archive, "static-json");
 }
 
 async function loadFromGas() {
   const endpoint = readMeta("utawaku:gas-endpoint");
   if (!endpoint) throw new Error("gas endpoint not configured");
+
   const joiner = endpoint.includes("?") ? "&" : "?";
   const songsUrl = `${endpoint}${joiner}sheet=songs&limit=${APP_CONFIG.fallbackLimit}`;
   const archiveUrl = `${endpoint}${joiner}sheet=archive&limit=${APP_CONFIG.fallbackLimit}`;
   const [songsData, archiveData] = await Promise.all([fetchJson(songsUrl), fetchJson(archiveUrl)]);
-  const songs = Array.isArray(songsData?.items) ? songsData.items : Array.isArray(songsData) ? songsData : [];
-  const archive = Array.isArray(archiveData?.items) ? archiveData.items : Array.isArray(archiveData) ? archiveData : [];
-  const merged = songs.concat(archive);
-  return merged.map((r, i) => normalizeRecord(r, i, "gas-api"));
+
+  return normalizeRows(songsData, archiveData, "gas-api");
+}
+
+function buildLoadError(staticError, gasError) {
+  return `データ読込に失敗しました。static=${staticError.message} / gas=${gasError.message}`;
 }
 
 export async function loadSongsWithFallback() {
   try {
     const rows = dedupeByKey(await loadFromStatic());
     return { rows, sourceType: "static-json", error: "" };
-  } catch (e1) {
+  } catch (staticError) {
     try {
       const rows = dedupeByKey(await loadFromGas());
       return { rows, sourceType: "gas-api", error: "" };
-    } catch (e2) {
+    } catch (gasError) {
       return {
         rows: [],
         sourceType: "",
-        error: `データ読込に失敗しました。static=${e1.message} / gas=${e2.message}`
+        error: buildLoadError(staticError, gasError)
       };
     }
   }
