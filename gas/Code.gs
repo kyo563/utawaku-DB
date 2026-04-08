@@ -1,22 +1,31 @@
 /**
- * Utawaku-DB: Spreadsheet -> JSONP export 用の最小GAS。
+ * Utawaku-DB: Spreadsheet export API。
  *
  * GET /exec?mode=exportContractV1
- * - 2シート（歌った曲リスト / アーカイブシート）のみを返す
- * - callback 指定時は JSONP
+ * GET /exec?mode=songs
+ * GET /exec?mode=archive
  */
+var EXPORT_MODE = 'exportContractV1';
+var MODE_SONGS = 'songs';
+var MODE_ARCHIVE = 'archive';
+
 function doGet(e) {
   var p = e && e.parameter ? e.parameter : {};
-  var mode = String(p.mode || 'exportContractV1');
-  if (mode !== 'exportContractV1') {
-    return asOutput_(JSON.stringify({ ok: false, error: 'unsupported mode' }), p.callback);
+  var mode = String(p.mode || EXPORT_MODE);
+
+  if (mode !== EXPORT_MODE && mode !== MODE_SONGS && mode !== MODE_ARCHIVE) {
+    return asOutput_(JSON.stringify({ ok: false, mode: mode, error: 'unsupported mode' }), p.callback);
   }
 
-  var payload = buildExportContractV1_();
-  return asOutput_(JSON.stringify(payload), p.callback);
+  try {
+    var payload = buildExportContractV1_(mode);
+    return asOutput_(JSON.stringify({ ok: true, mode: mode, data: payload }), p.callback);
+  } catch (err) {
+    return asOutput_(JSON.stringify({ ok: false, mode: mode, error: String(err && err.message ? err.message : err) }), p.callback);
+  }
 }
 
-function buildExportContractV1_() {
+function buildExportContractV1_(mode) {
   var ss = SpreadsheetApp.getActiveSpreadsheet();
   var target = [
     { label: '歌った曲リスト', key: 'songs' },
@@ -25,7 +34,7 @@ function buildExportContractV1_() {
 
   var result = {
     ok: true,
-    version: 1,
+    version: 'v1.2',
     spreadsheetId: ss.getId(),
     generatedAt: new Date().toISOString(),
     sheets: {}
@@ -33,6 +42,9 @@ function buildExportContractV1_() {
 
   for (var i = 0; i < target.length; i++) {
     var t = target[i];
+    if (mode === MODE_SONGS && t.key !== MODE_SONGS) continue;
+    if (mode === MODE_ARCHIVE && t.key !== MODE_ARCHIVE) continue;
+
     var sh = ss.getSheetByName(t.label);
     if (!sh) throw new Error('sheet not found: ' + t.label);
 
@@ -65,13 +77,16 @@ function buildExportContractV1_() {
       }
     }
 
-    result.sheets[t.label] = {
+    var sheetResult = {
       sourceSheet: t.key,
       sourceSheetLabel: t.label,
       headerRowNumber: 3,
       header: header,
       rows: rows
     };
+
+    result.sheets[t.label] = sheetResult;
+    result.sheets[t.key] = sheetResult;
   }
 
   return result;

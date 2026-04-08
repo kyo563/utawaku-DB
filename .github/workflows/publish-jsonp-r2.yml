@@ -10,6 +10,7 @@ on:
       - "scripts/export-jsonp.mjs"
       - "gas/Code.gs"
       - "gas/Code.deploy.gs"
+      - "src/data-source.js"
       - ".github/workflows/publish-jsonp-r2.yml"
 
 jobs:
@@ -28,17 +29,44 @@ jobs:
         with:
           node-version: 20
 
-      - name: Fetch spreadsheet export JSON
+      - name: Fetch songs export JSON
         run: |
           test -n "$GAS_WEB_APP_URL"
           mkdir -p tmp
-          curl -fsSL "${GAS_WEB_APP_URL}?mode=exportContractV1" -o tmp/spreadsheet-export.json
+          curl -fsSL "${GAS_WEB_APP_URL}?mode=songs" -o tmp/export-songs.json
 
-      - name: Generate JSONP assets
+      - name: Fetch archive export JSON
         run: |
-          node scripts/export-jsonp.mjs --input tmp/spreadsheet-export.json --out public-data --chunk-size 1000
+          test -n "$GAS_WEB_APP_URL"
+          mkdir -p tmp
+          curl -fsSL "${GAS_WEB_APP_URL}?mode=archive" -o tmp/export-archive.json
 
-      - name: Upload JSONP to Cloudflare R2
+      - name: Validate export payload structure
+        run: |
+          node -e '
+          const fs = require("node:fs");
+          function keys(v){ return v && typeof v === "object" && !Array.isArray(v) ? Object.keys(v) : []; }
+          function inspect(label, path){
+            const src = JSON.parse(fs.readFileSync(path, "utf8"));
+            const top = keys(src);
+            const data = keys(src.data);
+            const sheets = keys((src && src.sheets) || (src.data && src.data.sheets));
+            console.log(`[${label}] top-level keys: ${top.join(",") || "-"}`);
+            console.log(`[${label}] data keys: ${data.join(",") || "-"}`);
+            console.log(`[${label}] sheets keys: ${sheets.join(",") || "-"}`);
+            if (!((src && src.sheets) || (src.data && src.data.sheets))) {
+              throw new Error(`[${label}] invalid payload: sheets not found`);
+            }
+          }
+          inspect("songs", "tmp/export-songs.json");
+          inspect("archive", "tmp/export-archive.json");
+          '
+
+      - name: Generate JSON + JSONP assets
+        run: |
+          node scripts/export-jsonp.mjs --input-songs tmp/export-songs.json --input-archive tmp/export-archive.json --out public-data --chunk-size 1000
+
+      - name: Upload static assets to Cloudflare R2
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.CF_R2_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.CF_R2_SECRET_ACCESS_KEY }}
@@ -46,7 +74,12 @@ jobs:
         run: |
           test -n "$CF_R2_ENDPOINT"
           test -n "$CF_R2_BUCKET"
+          aws s3 cp public-data/songs.json s3://${CF_R2_BUCKET}/public-data/songs.json --endpoint-url "$CF_R2_ENDPOINT"
+          aws s3 cp public-data/archive/index.json s3://${CF_R2_BUCKET}/public-data/archive/index.json --endpoint-url "$CF_R2_ENDPOINT"
+          aws s3 cp public-data/validation-warnings.json s3://${CF_R2_BUCKET}/public-data/validation-warnings.json --endpoint-url "$CF_R2_ENDPOINT"
+          aws s3 sync public-data/archive/chunks s3://${CF_R2_BUCKET}/public-data/archive/chunks --endpoint-url "$CF_R2_ENDPOINT" --exclude "*" --include "*.json"
+
+          # 互換維持（移行期間）
           aws s3 cp public-data/songs.js s3://${CF_R2_BUCKET}/public-data/songs.js --endpoint-url "$CF_R2_ENDPOINT"
           aws s3 cp public-data/archive-manifest.js s3://${CF_R2_BUCKET}/public-data/archive-manifest.js --endpoint-url "$CF_R2_ENDPOINT"
-          aws s3 cp public-data/validation-warnings.json s3://${CF_R2_BUCKET}/public-data/validation-warnings.json --endpoint-url "$CF_R2_ENDPOINT"
           aws s3 sync public-data/archive-chunks s3://${CF_R2_BUCKET}/public-data/archive-chunks --endpoint-url "$CF_R2_ENDPOINT" --exclude "*" --include "*.js"

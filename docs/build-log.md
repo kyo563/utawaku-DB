@@ -1,5 +1,40 @@
 # build-log
 
+## 2026-04-08 (R2公開パイプライン堅牢化: payload正規化 + songs/archive分離 + archive分割JSON)
+
+### 変更内容
+- `scripts/export-jsonp.mjs` に payload 正規化処理を追加し、`{sheets}` と `{ok,mode,data:{sheets}}` の両方を受理するように変更。
+- 同スクリプトで診断ログを強化し、`target sheets not found` の前に `top-level/data/sheets keys` を把握できるよう改善。
+- 出力を JSON 正規ルートへ拡張し、`public-data/songs.json`、`public-data/archive/index.json`、`public-data/archive/chunks/*.json` を生成。
+- 互換維持として既存JSONP（`songs.js` / `archive-manifest.js` / `archive-chunks/*.js`）も継続出力。
+- `gas/Code.deploy.gs` / `gas/Code.gs` を `mode=exportContractV1|songs|archive` 対応に変更し、返却構造を `{ok,mode,data}` に統一。
+- `.github/workflows/publish-jsonp-r2.yml` を songs/archive 分離取得 + 構造検証 + JSON/JSONP 並行アップロードへ更新。
+- `src/data-source.js` を R2 JSON 優先に更新し、`archive/index.json` から chunk を段階読み込みする方式に変更。
+- `index.html` に `utawaku:data-archive-index` と `utawaku:allow-gas-fallback=false` を追加。
+
+### 変更理由
+- GitHub Actions 失敗原因（payload構造差）を根本吸収し、将来のレスポンス形揺れでも詰まりにくくするため。
+- archive 増加時に単一巨大ファイル依存を避け、分割JSON運用へ移行するため。
+- 本番HTMLの責務を R2 静的 fetch 中心に寄せ、GAS 直接依存を縮小するため。
+
+### 影響ファイル
+- `scripts/export-jsonp.mjs`
+- `gas/Code.deploy.gs`
+- `gas/Code.gs`
+- `.github/workflows/publish-jsonp-r2.yml`
+- `src/data-source.js`
+- `src/config.js`
+- `index.html`
+- `docs/build-log.md`
+
+### 注意点
+- フロントは archive chunk を初回 `archiveInitialChunkCount` 件（既定3件）まで読込むため、全件検索は段階読込前提になる。
+- R2 には JSON を正規配布しつつ、移行期間は JSONP も併存配布する。
+
+### 未解決事項
+- UI側で追加chunkをユーザー操作に応じて継続読込するUX（必要時に別作業で追加）。
+
+
 ## 2026-04-08 (GitHub Actions定期実行追加 + 名称明確化)
 
 ### 変更内容
