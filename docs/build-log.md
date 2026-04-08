@@ -1,5 +1,25 @@
 # build-log
 
+## 2026-04-08 (ActionsのR2接続をSecrets endpoint参照へ統一)
+
+### 変更内容
+- `.github/workflows/publish-jsonp-r2.yml` のR2接続先を `CF_R2_ACCOUNT_ID` 由来の組み立てから、`CF_R2_ENDPOINT` Secret参照に変更。
+- アップロード前に `CF_R2_ENDPOINT` と `CF_R2_BUCKET` の必須チェックを追加。
+
+### 変更理由
+- `docs/r2-setup-guide.md` のSecrets定義とWorkflow実装を一致させ、設定ミスを減らすため。
+- 「シークレットを参照してR2へ接続」の運用要件を明確にするため。
+
+### 影響ファイル
+- `.github/workflows/publish-jsonp-r2.yml`
+- `docs/build-log.md`
+
+### 注意点
+- 実アップロード成否はGitHub Secretsの実値設定に依存。
+
+### 未解決事項
+- `GAS_WEB_APP_URL` / `CF_R2_*` の本番値設定と本番実行確認。
+
 ## 2026-04-08 (README整合: GAS仮組とJSONP/R2最終形の段階分離)
 
 ### 変更内容
