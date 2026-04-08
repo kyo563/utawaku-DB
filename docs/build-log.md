@@ -95,3 +95,26 @@
 
 ### 未解決事項
 - `GAS_WEB_APP_URL` および `CF_R2_*` の本番値設定。
+
+## 2026-04-08 (GAS転記用ファイル追加)
+
+### 変更内容
+- GASへそのまま貼り付け可能な転記専用ファイル `gas/Code.deploy.gs` を追加。
+- `mode=exportContractV1` で2シート（歌った曲リスト / アーカイブシート）を抽出し、JSON/JSONPを返す実装を追加。
+- ヘッダ不一致、`sourceUrl` 欠落、`sourceUrl` 重複を `warnings` として返すようにした。
+- `docs/sheets-jsonp-r2-spec.md` に転記ファイルとエンドポイント仕様を追記。
+
+### 変更理由
+- 「このファイルをそのまま貼り付けてGASデプロイしたい」という運用要件に対応するため。
+- 仕様書と実コードの対応を明確化し、運用時の転記ミスを減らすため。
+
+### 影響ファイル
+- `gas/Code.deploy.gs`
+- `docs/sheets-jsonp-r2-spec.md`
+- `docs/build-log.md`
+
+### 注意点
+- 本変更はGASコードと仕様文書の追加であり、実際のGASデプロイおよびR2アップロードは未実行。
+
+### 未解決事項
+- 本番 `GAS_WEB_APP_URL` と `CF_R2_*` の設定。
