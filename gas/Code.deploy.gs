@@ -26,12 +26,30 @@ var EXPECTED_HEADER = [
 function doGet(e) {
   var p = (e && e.parameter) ? e.parameter : {};
   var mode = String(p.mode || EXPORT_MODE);
+
   if (mode !== EXPORT_MODE) {
-    return asOutput_(JSON.stringify({ ok: false, error: 'unsupported mode: ' + mode }), p.callback);
+    return jsonResponse_({
+      ok: false,
+      mode: mode,
+      error: 'unsupported mode: ' + mode
+    }, p.callback);
   }
 
-  var payload = buildExportContractV1_();
-  return asOutput_(JSON.stringify(payload), p.callback);
+  try {
+    var payload = buildExportContractV1_();
+    return jsonResponse_({
+      ok: true,
+      mode: EXPORT_MODE,
+      data: payload
+    }, p.callback);
+  } catch (err) {
+    Logger.log('doGet error: ' + err);
+    return jsonResponse_({
+      ok: false,
+      mode: EXPORT_MODE,
+      error: toErrorMessage_(err)
+    }, p.callback);
+  }
 }
 
 function buildExportContractV1_() {
@@ -138,7 +156,13 @@ function normalizeText_(v) {
   return String(v || '').trim();
 }
 
-function asOutput_(json, callback) {
+function toErrorMessage_(err) {
+  if (err && err.message) return String(err.message);
+  return String(err || 'unknown error');
+}
+
+function jsonResponse_(obj, callback) {
+  var json = JSON.stringify(obj);
   if (callback) {
     return ContentService.createTextOutput(callback + '(' + json + ');')
       .setMimeType(ContentService.MimeType.JAVASCRIPT);

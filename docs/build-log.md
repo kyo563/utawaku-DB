@@ -265,3 +265,24 @@
 
 ### 未解決事項
 - 実R2エンドポイントの接続性は環境依存のため、この変更では検証していない。
+
+## 2026-04-08 (GAS doGetのJSONエラーハンドリング強化)
+
+### 変更内容
+- `gas/Code.deploy.gs` の `doGet(e)` に `try/catch` を追加。
+- `mode=exportContractV1` 成功時レスポンスを `{ ok, mode, data }` で返すように変更。
+- 未対応 mode / 例外時を含め、常に JSON（または callback 指定時は JSONP）を返す `jsonResponse_()` を追加。
+- エラーメッセージ整形用 `toErrorMessage_()` を追加。
+
+### 変更理由
+- GitHub Actions の `curl` + Node.js 連携で HTML 応答混入を避け、JSON APIとして安定化するため。
+
+### 影響ファイル
+- `gas/Code.deploy.gs`
+- `docs/build-log.md`
+
+### 注意点
+- `callback` パラメータがある場合は従来どおり JSONP 返却。
+
+### 未解決事項
+- 本番GASデプロイURLに対する実運用環境での疎通確認。
