@@ -179,3 +179,13 @@
 - GAS Web App の本番URL
 - R2 バケット名 / 公開URL
 - archive の実運用 chunk サイズ（初期値 1000）
+
+## 11. GAS転記用ファイル
+
+- 転記専用ファイル: `gas/Code.deploy.gs`
+- そのままGASエディタへ貼り付け、ウェブアプリとしてデプロイする。
+- エンドポイント:
+  - `GET /exec?mode=exportContractV1`（JSON）
+  - `GET /exec?mode=exportContractV1&callback=__UTAWAKU_DB_JSONP__`（JSONP）
+- レスポンスには `warnings` 配列を含め、ヘッダ不一致・URL欠落・URL重複を通知する。
+
