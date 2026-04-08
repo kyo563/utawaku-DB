@@ -52,7 +52,8 @@ function normalizeExportPayload(src, label) {
     throw new Error(`invalid payload: ${label} (not object)`);
   }
   if (src.ok === false) {
-    throw new Error(`payload error: ${label} mode=${String(src.mode || '')} error=${String(src.error || 'unknown')}`);
+    const diag = toDiagnostic(label, src);
+    throw new Error(`payload error: ${label} mode=${String(src.mode || '')} error=${String(src.error || 'unknown')} ${diag}`);
   }
 
   const payload = src.sheets ? src : (src.data?.sheets ? src.data : null);
@@ -179,7 +180,13 @@ async function writeJsonp(file, payload) {
 
 async function loadNormalized(file, label) {
   const text = await readFile(file, 'utf8');
-  const src = JSON.parse(text);
+  let src;
+  try {
+    src = JSON.parse(text);
+  } catch (err) {
+    const preview = text.slice(0, 600).replace(/\s+/g, ' ');
+    throw new Error(`invalid json: ${label} file=${file} preview=${preview} parseError=${String(err && err.message ? err.message : err)}`);
+  }
   return normalizeExportPayload(src, label);
 }
 

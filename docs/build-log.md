@@ -1,5 +1,31 @@
 # build-log
 
+## 2026-04-08 (サーバーアップロード障害調査ログ強化 + 調査仕様記帳)
+
+### 変更内容
+- `.github/workflows/publish-jsonp-r2.yml` で songs/archive 取得時の HTTP ステータスを保存・表示するように変更。
+- 同 workflow で songs/archive のレスポンス本文プレビュー（先頭600文字）をログ出力するように変更。
+- 同 workflow の構造検証で `ok/mode/error` を表示し、`sheets` 不在時に `mode/error` を含めて fail するように変更。
+- `scripts/export-jsonp.mjs` で `ok:false` ペイロード時の失敗メッセージに診断キー（top/data/sheets）を含めるように変更。
+- `scripts/export-jsonp.mjs` で JSON parse 失敗時に本文プレビューを含むエラーを返すように変更。
+- 今回の調査仕様（HTTPステータス保存・本文プレビュー・error内容付きfail）を本ログに記帳。
+
+### 変更理由
+- 現状ログでは「`sheets` がない」ことしか確定できず、`mode=songs` の実エラー内容が不足していたため。
+- `archive` 成功 / `songs` 失敗の切り分けを、CIログだけで即時に行えるようにするため。
+
+### 影響ファイル
+- `.github/workflows/publish-jsonp-r2.yml`
+- `scripts/export-jsonp.mjs`
+- `docs/build-log.md`
+
+### 注意点
+- 本変更は診断ログ強化であり、GASロジック自体の修正は含まない。
+- `mode=songs` 側の根本原因修正は、次回実行ログの `error` 実値を確認後に行う。
+
+### 未解決事項
+- `GAS_WEB_APP_URL?mode=songs` が返す `error` 実値の確認と、GAS分岐/シート参照/権限のどこが原因かの特定。
+
 ## 2026-04-08 (R2公開パイプライン堅牢化: payload正規化 + songs/archive分離 + archive分割JSON)
 
 ### 変更内容
